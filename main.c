@@ -9,6 +9,8 @@
 #define TARGET_FPS 120
 
 #define BACKGROUND_COLOR(color) DrawRectangle(0, 0, WIDTH, HEIGHT, (color));
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 static float lerp(float a, float b, float t) {
     if (t < 0.0f) t = 0.0f;
@@ -20,16 +22,14 @@ typedef struct Timer {
     float start_time;
     float current_time;
     float target_time;
-    int started;
-    int finished;
+    int active;
     void (*on_finished)(void*);
     void *data_ptr;
 } Timer;
 
 static Timer timer_init(void (*on_finished)(void *data_ptr), void *data_ptr) {
     Timer t = {0};
-    t.started = 0;
-    t.finished = 0;
+    t.active = 0;
     t.target_time = 0;
     t.start_time = 0.0f;
     t.current_time = 0.0f;
@@ -39,19 +39,17 @@ static Timer timer_init(void (*on_finished)(void *data_ptr), void *data_ptr) {
 }
 
 static void timer_start(Timer *timer, float target_time) {
-    timer->started = 1;
-    timer->finished = 0;
+    timer->active = 1;
     timer->start_time = GetTime();
     timer->current_time = GetTime();
     timer->target_time = target_time;
 }
 
 static void timer_update(Timer *timer) {
-    if (timer->started == 0 || timer->finished == 1) return;
+    if (timer->active == 0) return;
     timer->current_time = GetTime();
     if (timer->current_time - timer->start_time >= timer->target_time) {
-        timer->finished = 1;
-        timer->started = 0;
+        timer->active = 0;
         timer->on_finished(timer->data_ptr);
     }
 }
@@ -82,7 +80,7 @@ static void splash_update(Splash *splash) {
     double current_time = GetTime();
     double elapsed_time = current_time - splash->fade_start_time;
 
-    float fade_duration = 4.0f;  // 2 seconds.
+    float fade_duration = 2.0f;  // 2 seconds.
     float initial_opacity = 1.0f;
     float final_opacity = 0.0f;
     float t = (float)(elapsed_time / fade_duration);
@@ -92,7 +90,6 @@ static void splash_update(Splash *splash) {
     if (elapsed_time >= fade_duration) {
         splash->active = 0;
         splash->opacity = final_opacity;
-        TraceLog(LOG_INFO, "Fade-out completed");
     }
 }
 
@@ -116,6 +113,8 @@ typedef struct State {
     Timer start_splash_fadeout_timer;
 } State;
 
+State game_state;
+
 typedef struct Player {
     Rectangle boundaries;
     Color color;
@@ -124,7 +123,7 @@ typedef struct Player {
 
 static Player player_init(void) {
     Player p = {0};
-    p.speed = 4.0f;
+    p.speed = 2.5f;
     p.boundaries.width = p.boundaries.height = 40;
     p.boundaries.x = (WIDTH - p.boundaries.width) / 2;
     p.boundaries.y = (HEIGHT - p.boundaries.height) / 2;
@@ -132,12 +131,45 @@ static Player player_init(void) {
     return p;
 }
 
+static int can_use_input(void) {
+    int is_splash_active = game_state.splash.active == 1;
+    int is_fadeout_active = game_state.start_splash_fadeout_timer.active == 1;
+    return is_splash_active == 0 && is_fadeout_active == 0;
+}
+
+typedef enum BlockedInputReason {
+    BLOCKED_INPUT_REASON_TIMER_ACTIVE,
+    BLOCKED_INPUT_REASON_SPLASH,
+    BLOCKED_INPUT_REASON_NONE,
+} BlockedInputReason;
+
+static BlockedInputReason blocked_input_reason(void) {
+    int is_splash_active = game_state.splash.active == 1;
+    int is_fadeout_active = game_state.start_splash_fadeout_timer.active == 1;
+    if (is_splash_active) return BLOCKED_INPUT_REASON_SPLASH;
+    if (is_fadeout_active) return BLOCKED_INPUT_REASON_TIMER_ACTIVE;
+    return BLOCKED_INPUT_REASON_NONE;
+}
+
 static void player_update(Player *p) {
+    if (!can_use_input()) {
+        switch (blocked_input_reason()) {
+            case BLOCKED_INPUT_REASON_TIMER_ACTIVE:
+                return;
+            default:
+                break;
+        }
+    }
+
     const float speed = p->speed;
     if (IsKeyDown(KEY_A)) p->boundaries.x -= speed;
     if (IsKeyDown(KEY_D)) p->boundaries.x += speed;
     if (IsKeyDown(KEY_W)) p->boundaries.y -= speed;
     if (IsKeyDown(KEY_S)) p->boundaries.y += speed;
+
+    // clamp values to the edges of the screen
+    p->boundaries.x = MIN(MAX(p->boundaries.x, 0), WIDTH - p->boundaries.width);
+    p->boundaries.y = MIN(MAX(p->boundaries.y, 0), HEIGHT - p->boundaries.height);
 }
 
 static void player_render(Player *p) {
@@ -165,17 +197,14 @@ static void main_scene_render(MainScene *ms) {
     player_render(&ms->player);
 }
 
-static void on_splash_fadeout_notify(void *data_ptr) {
-    State *state = (State*)data_ptr;
-    if (!state) return;
-
-    splash_start(&state->splash);
+static void on_splash_fadeout_notify(void *_) {
+    splash_start(&game_state.splash);
 }
 
 static State state_init(void) {
     State s = {0};
     s.splash = splash_init();
-    s.start_splash_fadeout_timer = timer_init(on_splash_fadeout_notify, (void*)&s);
+    s.start_splash_fadeout_timer = timer_init(on_splash_fadeout_notify, NULL);
     s.active_scene = SCENE_MAIN;
 
     MainScene scene = main_scene_init();
@@ -228,19 +257,19 @@ int main(int argc, char *argv[]) {
     InitWindow(WIDTH, HEIGHT, TITLE);
     SetTargetFPS(TARGET_FPS);
 
-    State state = state_init();
+    game_state = state_init();
 
     while (!WindowShouldClose()) {
-        state_update(&state);
+        state_update(&game_state);
         BeginDrawing();
         ClearBackground(BLACK);
-        state_render(&state);
+        state_render(&game_state);
         EndDrawing();
     }
 
     CloseWindow();
 
-    state_destroy_scene(&state);
+    state_destroy_scene(&game_state);
 
     return 0;
 }
