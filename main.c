@@ -12,6 +12,9 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+// Two seconds
+#define SPLASH_FADE_OUT_DURATION 2.0f
+
 static float lerp(float a, float b, float t) {
     if (t < 0.0f) t = 0.0f;
     if (t > 1.0f) t = 1.0f;
@@ -79,18 +82,20 @@ static Splash splash_init(void) {
 static void splash_start(Splash *splash) {
     splash->active = 1;
     splash->opacity = 1.0f;
-    timer_start(&splash->animation_timer, 1.0f);  // fade of 1 second.
+    timer_start(&splash->animation_timer, SPLASH_FADE_OUT_DURATION);
 }
 
 static void splash_update(Splash *splash) {
-    if (splash->active == 0) return;
-
     timer_update(&splash->animation_timer);
 
-    float fade_duration = 1.0f;
-    float t = (float)(splash->animation_timer.elapsed_time / fade_duration);
+    if (splash->active == 0)
+        return;
 
-    splash->opacity = lerp(1.0f, 0.0f, t);
+    const float initial_alpha = 1.0f;
+    const float final_alpha = 0.0f;
+    const float t = (float)(splash->animation_timer.elapsed_time / SPLASH_FADE_OUT_DURATION);
+
+    splash->opacity = lerp(initial_alpha, final_alpha, t);
 }
 
 static void splash_render(Splash *splash) {
