@@ -80,7 +80,7 @@ static void splash_update(Splash *splash) {
     double current_time = GetTime();
     double elapsed_time = current_time - splash->fade_start_time;
 
-    float fade_duration = 2.0f;  // 2 seconds.
+    float fade_duration = 1.0f;  // 2 seconds.
     float initial_opacity = 1.0f;
     float final_opacity = 0.0f;
     float t = (float)(elapsed_time / fade_duration);
