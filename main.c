@@ -21,6 +21,7 @@ static float lerp(float a, float b, float t) {
 typedef struct Timer {
     float start_time;
     float current_time;
+    float elapsed_time;
     float target_time;
     int active;
     void (*on_finished)(void*);
@@ -42,13 +43,14 @@ static void timer_start(Timer *timer, float target_time) {
     timer->active = 1;
     timer->start_time = GetTime();
     timer->current_time = GetTime();
+    timer->elapsed_time = 0.0f;
     timer->target_time = target_time;
 }
 
 static void timer_update(Timer *timer) {
     if (timer->active == 0) return;
     timer->current_time = GetTime();
-    if (timer->current_time - timer->start_time >= timer->target_time) {
+    if ((timer->elapsed_time = timer->current_time - timer->start_time) >= timer->target_time) {
         timer->active = 0;
         timer->on_finished(timer->data_ptr);
     }
@@ -56,41 +58,39 @@ static void timer_update(Timer *timer) {
 
 typedef struct Splash {
     int active;
-    float fade_start_time;
     float opacity;
+    Timer animation_timer;
 } Splash;
+
+static void on_splash_timer_end(void *data_ptr) {
+    Splash *splash = (Splash*)data_ptr;
+    splash->active = 0;
+    splash->opacity = 0.0f;
+}
 
 static Splash splash_init(void) {
     Splash splash = {0};
     splash.active = 0;
-    splash.fade_start_time = 0.0f;
     splash.opacity = 1.0f;
+    splash.animation_timer = timer_init(on_splash_timer_end, (void*)&splash);
     return splash;
 }
 
 static void splash_start(Splash *splash) {
     splash->active = 1;
-    splash->fade_start_time = GetTime();
     splash->opacity = 1.0f;
+    timer_start(&splash->animation_timer, 1.0f);  // fade of 1 second.
 }
 
 static void splash_update(Splash *splash) {
     if (splash->active == 0) return;
 
-    double current_time = GetTime();
-    double elapsed_time = current_time - splash->fade_start_time;
+    timer_update(&splash->animation_timer);
 
-    float fade_duration = 1.0f;  // 2 seconds.
-    float initial_opacity = 1.0f;
-    float final_opacity = 0.0f;
-    float t = (float)(elapsed_time / fade_duration);
+    float fade_duration = 1.0f;
+    float t = (float)(splash->animation_timer.elapsed_time / fade_duration);
 
-    splash->opacity = lerp(initial_opacity, final_opacity, t);
-
-    if (elapsed_time >= fade_duration) {
-        splash->active = 0;
-        splash->opacity = final_opacity;
-    }
+    splash->opacity = lerp(1.0f, 0.0f, t);
 }
 
 static void splash_render(Splash *splash) {
