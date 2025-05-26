@@ -1,0 +1,18 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-c",
+      "-Wall",
+      "-Werror",
+      "-I/opt/homebrew/Cellar/raylib/5.5/include",
+      "-O3",
+      "-o",
+      "main.o",
+      "main.c"
+    ],
+    "directory": "/Users/alpha/work/splash-example",
+    "file": "/Users/alpha/work/splash-example/main.c",
+    "output": "/Users/alpha/work/splash-example/main.o"
+  }
+]
