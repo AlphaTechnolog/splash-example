@@ -131,12 +131,6 @@ static Player player_init(void) {
     return p;
 }
 
-static int can_use_input(void) {
-    int is_splash_active = game_state.splash.active == 1;
-    int is_fadeout_active = game_state.start_splash_fadeout_timer.active == 1;
-    return is_splash_active == 0 && is_fadeout_active == 0;
-}
-
 typedef enum BlockedInputReason {
     BLOCKED_INPUT_REASON_TIMER_ACTIVE,
     BLOCKED_INPUT_REASON_SPLASH,
@@ -152,13 +146,13 @@ static BlockedInputReason blocked_input_reason(void) {
 }
 
 static void player_update(Player *p) {
-    if (!can_use_input()) {
-        switch (blocked_input_reason()) {
-            case BLOCKED_INPUT_REASON_TIMER_ACTIVE:
-                return;
-            default:
-                break;
-        }
+    // not checking splash blocked input reason because i think it may be better for the player
+    // to be able to not move only when the timer is active but not when it is fading.
+    switch (blocked_input_reason()) {
+        case BLOCKED_INPUT_REASON_TIMER_ACTIVE:
+            return;
+        default:
+            break;
     }
 
     const float speed = p->speed;
