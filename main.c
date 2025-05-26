@@ -94,12 +94,13 @@ static void splash_update(Splash *splash) {
 }
 
 static void splash_render(Splash *splash) {
-    BACKGROUND_COLOR(((Color){
-        .r = 0,
-        .g = 0,
-        .b = 0,
-        .a = 255 * splash->opacity,
-    }));
+    const char *title = "Sample game";
+    const float fontsize = 42;
+    float alpha = 255 * splash->opacity;
+    float length = MeasureText(title, fontsize);
+    Vector2 textpos = (Vector2){(WIDTH - length) / 2, (HEIGHT - 32.0f) / 2};
+    BACKGROUND_COLOR(((Color){0, 0, 0, alpha}));
+    DrawText(title, textpos.x, textpos.y, fontsize, (Color){255, 255, 255, alpha});
 }
 
 typedef enum Scene {
