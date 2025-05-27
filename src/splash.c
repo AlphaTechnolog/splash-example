@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <raylib.h>
 
 #include "timer.h"
 #include "math_utils.h"
 #include "macro_utils.h"
 #include "config.h"
+#include "state.h"
 #include "splash.h"
 
 #define INITIAL_OPACITY 1.0f
@@ -14,13 +16,8 @@
 // duration of 1 second.
 #define SPLASH_FADEOUT_DURATION 1.0f
 
-static void on_splash_timer_end(void *data_ptr) {
-    Splash *splash = (Splash*)data_ptr;
-    if (!splash) {
-        fprintf(stderr, "casting error\n");
-        exit(EXIT_FAILURE);
-    }
-
+static void on_splash_timer_end(void *_) {
+    Splash *splash = &gstate->splash;
     splash->active = 0;
     splash->opacity = FINAL_OPACITY;
 }
@@ -29,7 +26,7 @@ Splash splash_init(void) {
     Splash s = {0};
     s.active = 0;
     s.opacity = 1.0f;
-    s.animation_timer = timer_init(on_splash_timer_end, (void*)&s);
+    s.animation_timer = timer_init(on_splash_timer_end, NULL);
     return s;
 }
 
@@ -51,6 +48,9 @@ void splash_update(Splash *splash) {
 }
 
 void splash_render(Splash *splash) {
+    if (splash->active == 0 && gstate->start_splash_fadeout_timer.active == 0)
+        return;
+
     const char *title = "Splash example";
     const char *author = "https://github.com/AlphaTechnolog/splash-example";
     const float title_fontsize = 42;

@@ -3,7 +3,7 @@
 
 #define WIDTH 800
 #define HEIGHT 600
-#define TITLE "Atari Breakout Clone"
+#define TITLE "WINDOW"
 #define TARGET_FPS 120
 
 #endif
