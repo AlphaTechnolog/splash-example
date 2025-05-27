@@ -51,8 +51,8 @@ void splash_update(Splash *splash) {
 }
 
 void splash_render(Splash *splash) {
-    const char *title = "Atari Breakout Clone";
-    const char *author = "https://github.com/AlphaTechnolog/atari-breakout-c";
+    const char *title = "Splash example";
+    const char *author = "https://github.com/AlphaTechnolog/splash-example";
     const float title_fontsize = 42;
     const float author_fontsize = 12;
     const float alpha = 255 * splash->opacity;
