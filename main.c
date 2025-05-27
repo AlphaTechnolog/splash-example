@@ -12,8 +12,8 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-// Two seconds
-#define SPLASH_FADE_OUT_DURATION 2.0f
+// One second.
+#define SPLASH_FADE_OUT_DURATION 1.0f
 
 static float lerp(float a, float b, float t) {
     if (t < 0.0f) t = 0.0f;
