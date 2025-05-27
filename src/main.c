@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <raylib.h>
 
 #include "config.h"
@@ -26,8 +25,8 @@ int main(int argc, char *argv[]) {
     }
 
     CloseWindow();
-
     state_scene_destroy();
+    free(gstate);
 
     return 0;
 }
